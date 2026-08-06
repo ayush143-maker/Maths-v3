@@ -45,21 +45,25 @@
     #values.visible { opacity: 1; }
     #lyrics {
       position: absolute;
-      bottom: 12vh;
+      top: 10vh;
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
       font-family: 'Dancing Script', cursive;
-      font-size: clamp(28px, 9vw, 48px);
+      font-size: clamp(24px, 7vw, 40px);
       font-weight: 700;
       color: rgba(255, 255, 255, 0.95);
       text-shadow: 0 0 30px rgba(255,255,255,0.4), 0 0 60px rgba(255,255,255,0.15);
-      line-height: 1.45;
+      line-height: 1.5;
       white-space: nowrap;
       opacity: 0;
       transition: opacity 0.9s ease;
       pointer-events: none;
       z-index: 6;
+      padding: 12px 32px;
+      border-radius: 12px;
+      background: rgba(5, 8, 20, 0.35);
+      backdrop-filter: blur(4px);
     }
     #lyrics.visible { opacity: 1; }
     #start {
@@ -92,6 +96,39 @@
       color: rgba(255,255,255,0.22);
       text-transform: none;
     }
+    #equation-screen {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #050814;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 1.2s ease;
+      z-index: 9;
+    }
+    #equation-screen.visible {
+      opacity: 1;
+    }
+    #equation-screen .eq {
+      font-family: 'Dancing Script', cursive;
+      font-size: clamp(48px, 14vw, 96px);
+      font-weight: 700;
+      color: rgba(255, 255, 255, 0.92);
+      text-shadow: 0 0 40px rgba(184, 244, 255, 0.35), 0 0 80px rgba(115, 216, 255, 0.15);
+      letter-spacing: 0.05em;
+    }
+    #equation-screen .sub {
+      margin-top: 18px;
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(10px, 2.5vw, 13px);
+      font-weight: 200;
+      letter-spacing: 0.3em;
+      color: rgba(255,255,255,0.25);
+      text-transform: uppercase;
+      text-align: center;
+    }
   </style>
 </head>
 <body>
@@ -99,11 +136,18 @@
     <div>Touch to begin</div>
     <div class="hint">Headphones recommended</div>
   </div>
+  <div id="equation-screen">
+    <div>
+      <div class="eq">y = -1/x</div>
+      <div class="sub">A journey towards infinity</div>
+    </div>
+  </div>
   <canvas id="canvas"></canvas>
   <div id="ui">
     <div id="values">
-      <div id="x-display">x = 10</div>
-      <div id="y-display">y = -0.1</div>
+      <div id="x-display">x = 10.00</div>
+      <div id="y-display">y = -0.10</div>
+      <div id="trend-display" style="font-size:0.65em; color:rgba(184,244,255,0.7); margin-top:6px;">x &rarr; 0&nbsp;&nbsp;|&nbsp;&nbsp;y &rarr; -&infin;</div>
     </div>
     <div id="lyrics"></div>
   </div>
@@ -116,9 +160,11 @@
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d', { alpha: false });
     const startEl = document.getElementById('start');
+    const eqScreen = document.getElementById('equation-screen');
     const valuesEl = document.getElementById('values');
     const xDisplay = document.getElementById('x-display');
     const yDisplay = document.getElementById('y-display');
+    const trendDisplay = document.getElementById('trend-display');
     const lyricsEl = document.getElementById('lyrics');
     const audio = document.getElementById('music');
 
@@ -142,16 +188,16 @@
     // ============================================================
     //  STARFIELD
     // ============================================================
-    const STAR_COUNT = 100;
+    const STAR_COUNT = 120;
     const stars = [];
     for (let i = 0; i < STAR_COUNT; i++) {
       stars.push({
         x: Math.random(),
         y: Math.random(),
-        r: 0.3 + Math.random() * 0.9,
-        a: 0.05 + Math.random() * 0.12,
+        r: 0.3 + Math.random() * 1.1,
+        a: 0.04 + Math.random() * 0.14,
         phase: Math.random() * Math.PI * 2,
-        speed: 0.12 + Math.random() * 0.35
+        speed: 0.08 + Math.random() * 0.4
       });
     }
 
@@ -163,39 +209,40 @@
 
     function fmt(val, isY) {
       const av = Math.abs(val);
-      const sci = isY ? av >= 100 : av < 1;
       let s;
-      if (sci) {
+      if (av >= 1000 || (isY && av >= 10) || (!isY && av < 0.01)) {
         const e = Math.floor(Math.log10(av));
         const m = av / Math.pow(10, e);
-        const ms = Math.abs(m - 1) < 0.001 ? '1' : m.toFixed(1).replace(/\.0$/, '');
+        const ms = Math.abs(m - 1) < 0.001 ? '1' : m.toFixed(2).replace(/\.0$/, '').replace(/\.00$/, '');
         s = ms + '\u00D710' + toSup(e);
+      } else if (av >= 100) {
+        s = av.toFixed(1).replace(/\.0$/, '');
+      } else if (av >= 10) {
+        s = av.toFixed(2).replace(/\.0$/, '').replace(/\.00$/, '');
+      } else if (av >= 1) {
+        s = av.toFixed(3).replace(/\.0$/, '').replace(/\.00$/, '');
       } else {
-        if (av >= 10) s = av.toFixed(0);
-        else if (av >= 1) s = av.toFixed(1).replace(/\.0$/, '');
-        else s = av.toFixed(2).replace(/\.0$/, '');
+        s = av.toFixed(4).replace(/\.0$/, '').replace(/\.00$/, '');
       }
       return (isY ? '-' : '') + s;
     }
 
-    // Particle position: x(t)
+    // Particle position: x(t) — never reaches 0, slowly decays
     function getX(t) {
-      if (t <= 5) return 10 - 1.6 * t;
-      return 2 * Math.exp(-0.34 * (t - 5));
+      // x starts at 10, decays exponentially but never hits 0
+      // At t=0: 10, t=20: ~3.4, t=50: ~0.39, t=100: ~0.015
+      return 10 * Math.exp(-t / 18);
     }
 
-    // View parameters
+    // View parameters — keeps y-axis visible, particle approaches it but never touches
     function getView(t, x, y) {
-      let Wv, left;
-      if (t < 5) {
-        Wv = 40 - 3.2 * t;
-        left = -1;
-      } else {
-        Wv = 12 * x;
-        left = -x;
-      }
+      // View width shrinks slowly as x shrinks, with a minimum so we don't explode
+      const Wv = Math.max(2.5, 18 * Math.exp(-t / 28));
+      // y-axis sits at 12% from left edge
+      const left = -Wv * 0.12;
       const Hv = Wv / aspect;
-      const top = y + 0.25 * Hv;
+      // Particle sits at 38% from top
+      const top = y + Hv * 0.38;
       const bottom = top - Hv;
       return { left, right: left + Wv, bottom, top, Wv, Hv };
     }
@@ -208,9 +255,9 @@
     }
 
     // ============================================================
-    //  TRAIL (ring buffer, ~3 seconds = 180 frames)
+    //  TRAIL (ring buffer, ~4 seconds = 240 frames)
     // ============================================================
-    const TRAIL_LEN = 180;
+    const TRAIL_LEN = 240;
     const trailX = new Float64Array(TRAIL_LEN);
     const trailY = new Float64Array(TRAIL_LEN);
     let trailHead = 0;
@@ -224,15 +271,15 @@
     }
 
     // ============================================================
-    //  LYRICS DATA (song starts at animation t = 11)
+    //  LYRICS DATA (audio + lyrics start at animation t = 5)
     // ============================================================
     const lyricsData = [
-      { start: 11.0, end: 18.0, lines: ["Tere rukh se apna raasta"] },
-      { start: 18.0, end: 24.5, lines: ["Mod ke chalaa"] },
-      { start: 24.5, end: 36.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
-      { start: 36.5, end: 48.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
-      { start: 48.0, end: 58.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
-      { start: 58.0, end: 65.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
+      { start: 5.0,  end: 12.0, lines: ["Tere rukh se apna raasta"] },
+      { start: 12.0, end: 18.5, lines: ["Mod ke chalaa"] },
+      { start: 18.5, end: 30.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
+      { start: 30.5, end: 42.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
+      { start: 42.0, end: 52.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
+      { start: 52.0, end: 65.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
     ];
     let currentLyricIdx = -1;
 
@@ -291,19 +338,20 @@
       ctx.shadowBlur = 0;
     }
 
-    function drawCurve(v) {
+    function drawCurve(v, particleX) {
+      // Only draw curve from y-axis up to slightly ahead of particle
       const xAtTop = -1 / v.top;
       const xAtBottom = -1 / v.bottom;
 
       let xMin = Math.max(1e-12, xAtTop);
-      let xMax = xAtBottom;
+      let xMax = Math.min(xAtBottom, particleX * 1.8);
 
       if (xMin >= xMax) return;
       if (xMax > v.right) xMax = v.right;
 
       setWorldTransform(v);
 
-      const samples = 400;
+      const samples = 500;
       ctx.beginPath();
       for (let i = 0; i <= samples; i++) {
         const t = i / samples;
@@ -325,17 +373,17 @@
       ctx.shadowColor = 'rgba(184, 244, 255, 0.25)';
       ctx.shadowBlur = 20;
       ctx.strokeStyle = grad;
-      ctx.globalAlpha = 0.42;
-      ctx.lineWidth = 2.8 / ps;
+      ctx.globalAlpha = 0.38;
+      ctx.lineWidth = 2.6 / ps;
       ctx.stroke();
 
       ctx.shadowBlur = 8;
-      ctx.lineWidth = 1.6 / ps;
+      ctx.lineWidth = 1.4 / ps;
       ctx.stroke();
 
       ctx.shadowBlur = 0;
-      ctx.lineWidth = 0.8 / ps;
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+      ctx.lineWidth = 0.7 / ps;
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
       ctx.stroke();
 
       ctx.globalAlpha = 1.0;
@@ -355,12 +403,19 @@
         const age = 1 - i / (trailCount - 1);
         if (age < 0.01) continue;
 
-        const alpha = age * 0.85;
-        const width = age * 3.0 / ps + 0.4 / ps;
+        const alpha = age * 0.9;
+        const width = age * 4.0 / ps + 0.5 / ps;
 
-        ctx.shadowColor = `rgba(124, 92, 255, ${alpha * 0.6})`;
-        ctx.shadowBlur = 22;
-        ctx.strokeStyle = `rgba(124, 92, 255, ${alpha})`;
+        // Cyan to indigo mix based on age
+        const r = Math.floor(0 + (75 - 0) * (1 - age));
+        const g = Math.floor(255 * age + 0 * (1 - age));
+        const b = Math.floor(255);
+        const color = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        const glow = `rgba(${r}, ${g}, ${b}, ${alpha * 0.5})`;
+
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = 18;
+        ctx.strokeStyle = color;
         ctx.lineWidth = width;
 
         ctx.beginPath();
@@ -374,22 +429,44 @@
     function drawParticle(x, y, v) {
       setWorldTransform(v);
 
-      const rHalo = 14 / (W / v.Wv);
-      const g = ctx.createRadialGradient(x, y, 0, x, y, rHalo);
-      g.addColorStop(0, 'rgba(184, 244, 255, 0.65)');
-      g.addColorStop(0.3, 'rgba(184, 244, 255, 0.2)');
-      g.addColorStop(1, 'rgba(184, 244, 255, 0)');
-      ctx.fillStyle = g;
+      // Outer cyan-indigo glow
+      const rGlow = 22 / (W / v.Wv);
+      const g1 = ctx.createRadialGradient(x, y, 0, x, y, rGlow);
+      g1.addColorStop(0, 'rgba(0, 255, 255, 0.35)');
+      g1.addColorStop(0.4, 'rgba(75, 0, 130, 0.15)');
+      g1.addColorStop(1, 'rgba(75, 0, 130, 0)');
+      ctx.fillStyle = g1;
+      ctx.beginPath();
+      ctx.arc(x, y, rGlow, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Inner halo
+      const rHalo = 10 / (W / v.Wv);
+      const g2 = ctx.createRadialGradient(x, y, 0, x, y, rHalo);
+      g2.addColorStop(0, 'rgba(184, 244, 255, 0.8)');
+      g2.addColorStop(0.35, 'rgba(184, 244, 255, 0.3)');
+      g2.addColorStop(1, 'rgba(184, 244, 255, 0)');
+      ctx.fillStyle = g2;
       ctx.beginPath();
       ctx.arc(x, y, rHalo, 0, Math.PI * 2);
       ctx.fill();
 
-      const rCore = 4.5 / (W / v.Wv);
+      // White core with shine
+      const rCore = 3.8 / (W / v.Wv);
       ctx.beginPath();
       ctx.arc(x, y, rCore, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(255,255,255,0.75)';
-      ctx.shadowBlur = 20;
+      ctx.shadowColor = 'rgba(255,255,255,0.9)';
+      ctx.shadowBlur = 24;
+      ctx.fill();
+
+      // Extra bright pinpoint
+      const rPin = 1.2 / (W / v.Wv);
+      ctx.beginPath();
+      ctx.arc(x, y, rPin, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(255,255,255,1)';
+      ctx.shadowColor = 'rgba(255,255,255,1)';
+      ctx.shadowBlur = 10;
       ctx.fill();
       ctx.shadowBlur = 0;
     }
@@ -401,6 +478,7 @@
     let t0 = 0;
     let audioStarted = false;
     let useAudioTime = false;
+    let animTime = 0;
 
     audio.addEventListener('play', () => { useAudioTime = true; });
 
@@ -415,7 +493,8 @@
           audioStarted = true;
         }
       }
-      if (t > 65) t = 65;
+      if (t > 70) t = 70;
+      animTime = t;
 
       const x = getX(t);
       const y = -1 / x;
@@ -429,7 +508,7 @@
 
       drawStars(t);
       drawAxes(v);
-      drawCurve(v);
+      drawCurve(v, x);
       drawTrail(v);
       drawParticle(x, y, v);
 
@@ -438,7 +517,7 @@
 
       updateLyrics(t);
 
-      if (t < 65) requestAnimationFrame(frame);
+      if (t < 70) requestAnimationFrame(frame);
     }
 
     // ============================================================
@@ -448,9 +527,15 @@
       if (running) return;
       running = true;
       startEl.classList.add('hidden');
-      valuesEl.classList.add('visible');
-      t0 = performance.now();
-      requestAnimationFrame(frame);
+
+      // Show equation screen for 2 seconds
+      eqScreen.classList.add('visible');
+      setTimeout(() => {
+        eqScreen.classList.remove('visible');
+        valuesEl.classList.add('visible');
+        t0 = performance.now();
+        requestAnimationFrame(frame);
+      }, 2200);
     }
 
     startEl.addEventListener('click', begin);

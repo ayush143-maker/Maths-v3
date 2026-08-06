@@ -229,19 +229,20 @@
       return (isY ? '-' : '') + s;
     }
 
-    // Particle position: x(t) — comes in fast, keeps approaching 0, never touches
+    // Particle position: x(t) — fast plunge, then hovers just off the axis, never touching
     function getX(t) {
-      // Power-law decay: steep drop at the start, still visibly creeping toward 0 at t=56
-      // t=0: 10, t=1: ~5.6, t=5: ~2.2, t=20: ~0.66, t=56: ~0.32
-      return 10 / Math.pow(1 + t, 0.85);
+      // t=0: 10, t=2: ~7.5, t=7: ~3.68, t=28: ~0.18, t=56: ~0.0034 -> y ~ -298
+      return 10 * Math.exp(-t / 7);
     }
 
-    // View parameters — camera stays centred on the particle the whole time
+    // View parameters — axis stays anchored on screen so the particle's drift toward it
+    // is visible motion, not just a re-centred camera. Zoom shrinks slower than the
+    // particle falls, so the plunge reads as fast, then the particle hovers near the axis.
     function getView(t, x, y) {
-      const Wv = Math.max(2.5, 18 * Math.exp(-t / 28));
+      const Wv = Math.max(0.8, 14 * Math.exp(-t / 20));
       const Hv = Wv / aspect;
-      const left = x - Wv / 2;
-      const top = y + Hv / 2;
+      const left = -Wv * 0.15;
+      const top = y + Hv * 0.4;
       const bottom = top - Hv;
       return { left, right: left + Wv, bottom, top, Wv, Hv };
     }
@@ -338,9 +339,11 @@
     }
 
     function drawCurve(v, particleX) {
-      // Only draw the curve up to where the particle currently is — nothing pre-traced ahead.
-      let xMin = Math.max(1e-6, -1 / v.bottom);
-      let xMax = Math.min(v.right, particleX);
+      // Only draw the part of the curve the particle has already passed through —
+      // from its current x back out to where it started. Nothing between here and
+      // the axis gets drawn until the particle itself reaches it.
+      let xMin = Math.max(1e-6, particleX);
+      let xMax = Math.min(v.right, 10);
 
       if (xMin >= xMax) return;
 

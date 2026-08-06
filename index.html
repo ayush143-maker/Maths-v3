@@ -29,15 +29,15 @@
     }
     #values {
       position: absolute;
-      top: 4vh;
-      left: 5vw;
+      top: 5vh;
+      left: 7vw;
       color: rgba(255, 255, 255, 0.92);
-      font-family: 'Inter', sans-serif;
-      font-size: clamp(20px, 5.5vw, 30px);
-      font-weight: 100;
-      line-height: 1.9;
+      font-family: 'Dancing Script', cursive;
+      font-size: clamp(22px, 6vw, 34px);
+      font-weight: 400;
+      line-height: 1.7;
       letter-spacing: 0.02em;
-      text-shadow: 0 0 18px rgba(255,255,255,0.22), 0 0 36px rgba(255,255,255,0.08);
+      text-shadow: 0 0 16px rgba(255,255,255,0.25), 0 0 32px rgba(255,255,255,0.1);
       opacity: 0;
       transition: opacity 2.5s ease;
       z-index: 6;
@@ -45,16 +45,16 @@
     #values.visible { opacity: 1; }
     #lyrics {
       position: absolute;
-      bottom: 14vh;
+      bottom: 12vh;
       left: 50%;
       transform: translateX(-50%);
       text-align: center;
       font-family: 'Dancing Script', cursive;
-      font-size: clamp(26px, 8vw, 44px);
-      font-weight: 400;
+      font-size: clamp(28px, 9vw, 48px);
+      font-weight: 700;
       color: rgba(255, 255, 255, 0.95);
-      text-shadow: 0 0 28px rgba(255,255,255,0.35), 0 0 56px rgba(255,255,255,0.15);
-      line-height: 1.5;
+      text-shadow: 0 0 30px rgba(255,255,255,0.4), 0 0 60px rgba(255,255,255,0.15);
+      line-height: 1.45;
       white-space: nowrap;
       opacity: 0;
       transition: opacity 0.9s ease;
@@ -188,14 +188,13 @@
     function getView(t, x, y) {
       let Wv, left;
       if (t < 5) {
-        Wv = 20 - 1.6 * t;
+        Wv = 40 - 3.2 * t;
         left = -1;
       } else {
-        Wv = 6 * x;
-        left = -0.5 * x;
+        Wv = 12 * x;
+        left = -x;
       }
       const Hv = Wv / aspect;
-      // Particle at 25% from top (75% from bottom) to emphasize descent
       const top = y + 0.25 * Hv;
       const bottom = top - Hv;
       return { left, right: left + Wv, bottom, top, Wv, Hv };
@@ -209,7 +208,7 @@
     }
 
     // ============================================================
-    //  TRAIL (ring buffer, 3 seconds = 180 frames)
+    //  TRAIL (ring buffer, ~3 seconds = 180 frames)
     // ============================================================
     const TRAIL_LEN = 180;
     const trailX = new Float64Array(TRAIL_LEN);
@@ -225,15 +224,15 @@
     }
 
     // ============================================================
-    //  LYRICS DATA
+    //  LYRICS DATA (song starts at animation t = 11)
     // ============================================================
     const lyricsData = [
-      { start: 5.0,  end: 12.0, lines: ["Tere rukh se apna raasta"] },
-      { start: 12.0, end: 18.5, lines: ["Mod ke chalaa"] },
-      { start: 18.5, end: 30.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
-      { start: 30.5, end: 42.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
-      { start: 42.0, end: 57.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
-      { start: 57.0, end: 61.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
+      { start: 11.0, end: 18.0, lines: ["Tere rukh se apna raasta"] },
+      { start: 18.0, end: 24.5, lines: ["Mod ke chalaa"] },
+      { start: 24.5, end: 36.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
+      { start: 36.5, end: 48.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
+      { start: 48.0, end: 58.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
+      { start: 58.0, end: 65.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
     ];
     let currentLyricIdx = -1;
 
@@ -274,10 +273,10 @@
       const ox = -v.left * sx;
       const oy = H + v.bottom * sy;
 
-      ctx.shadowColor = 'rgba(255,255,255,0.15)';
-      ctx.shadowBlur = 12;
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = 'rgba(255,255,255,0.28)';
+      ctx.shadowColor = 'rgba(123, 140, 255, 0.35)';
+      ctx.shadowBlur = 16;
+      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = '#7B8CFF';
 
       ctx.beginPath();
       ctx.moveTo(ox, 0);
@@ -293,14 +292,18 @@
     }
 
     function drawCurve(v) {
-      const xMin = -1 / v.top;
-      const xMax = -1 / v.bottom;
+      const xAtTop = -1 / v.top;
+      const xAtBottom = -1 / v.bottom;
 
-      if (xMin >= xMax || xMax <= 0) return;
+      let xMin = Math.max(1e-12, xAtTop);
+      let xMax = xAtBottom;
+
+      if (xMin >= xMax) return;
+      if (xMax > v.right) xMax = v.right;
 
       setWorldTransform(v);
 
-      const samples = 300;
+      const samples = 400;
       ctx.beginPath();
       for (let i = 0; i <= samples; i++) {
         const t = i / samples;
@@ -311,27 +314,31 @@
       }
 
       const grad = ctx.createLinearGradient(0, v.top, 0, v.bottom);
-      grad.addColorStop(0, '#AEEBFF');
-      grad.addColorStop(1, '#5B5CFF');
+      grad.addColorStop(0, '#B8F4FF');
+      grad.addColorStop(1, '#73D8FF');
 
       const ps = W / v.Wv;
       ctx.lineCap = 'round';
       ctx.lineJoin = 'round';
 
-      ctx.shadowColor = 'rgba(174, 235, 255, 0.28)';
-      ctx.shadowBlur = 24;
+      // Soft permanent curve at low opacity
+      ctx.shadowColor = 'rgba(184, 244, 255, 0.25)';
+      ctx.shadowBlur = 20;
       ctx.strokeStyle = grad;
-      ctx.lineWidth = 3.0 / ps;
+      ctx.globalAlpha = 0.42;
+      ctx.lineWidth = 2.8 / ps;
       ctx.stroke();
 
-      ctx.shadowBlur = 10;
-      ctx.lineWidth = 2.0 / ps;
+      ctx.shadowBlur = 8;
+      ctx.lineWidth = 1.6 / ps;
       ctx.stroke();
 
       ctx.shadowBlur = 0;
-      ctx.lineWidth = 1.0 / ps;
-      ctx.strokeStyle = 'rgba(255,255,255,0.18)';
+      ctx.lineWidth = 0.8 / ps;
+      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
       ctx.stroke();
+
+      ctx.globalAlpha = 1.0;
     }
 
     function drawTrail(v) {
@@ -348,12 +355,12 @@
         const age = 1 - i / (trailCount - 1);
         if (age < 0.01) continue;
 
-        const alpha = age * 0.55;
-        const width = age * 2.5 / ps + 0.3 / ps;
+        const alpha = age * 0.85;
+        const width = age * 3.0 / ps + 0.4 / ps;
 
-        ctx.shadowColor = `rgba(174, 235, 255, ${alpha * 0.4})`;
-        ctx.shadowBlur = 18;
-        ctx.strokeStyle = `rgba(174, 235, 255, ${alpha})`;
+        ctx.shadowColor = `rgba(124, 92, 255, ${alpha * 0.6})`;
+        ctx.shadowBlur = 22;
+        ctx.strokeStyle = `rgba(124, 92, 255, ${alpha})`;
         ctx.lineWidth = width;
 
         ctx.beginPath();
@@ -367,22 +374,22 @@
     function drawParticle(x, y, v) {
       setWorldTransform(v);
 
-      const rHalo = 10 / (W / v.Wv);
+      const rHalo = 14 / (W / v.Wv);
       const g = ctx.createRadialGradient(x, y, 0, x, y, rHalo);
-      g.addColorStop(0, 'rgba(174, 235, 255, 0.55)');
-      g.addColorStop(0.35, 'rgba(174, 235, 255, 0.12)');
-      g.addColorStop(1, 'rgba(174, 235, 255, 0)');
+      g.addColorStop(0, 'rgba(184, 244, 255, 0.65)');
+      g.addColorStop(0.3, 'rgba(184, 244, 255, 0.2)');
+      g.addColorStop(1, 'rgba(184, 244, 255, 0)');
       ctx.fillStyle = g;
       ctx.beginPath();
       ctx.arc(x, y, rHalo, 0, Math.PI * 2);
       ctx.fill();
 
-      const rCore = 3.5 / (W / v.Wv);
+      const rCore = 4.5 / (W / v.Wv);
       ctx.beginPath();
       ctx.arc(x, y, rCore, 0, Math.PI * 2);
       ctx.fillStyle = '#ffffff';
-      ctx.shadowColor = 'rgba(255,255,255,0.6)';
-      ctx.shadowBlur = 16;
+      ctx.shadowColor = 'rgba(255,255,255,0.75)';
+      ctx.shadowBlur = 20;
       ctx.fill();
       ctx.shadowBlur = 0;
     }
@@ -408,7 +415,7 @@
           audioStarted = true;
         }
       }
-      if (t > 61) t = 61;
+      if (t > 65) t = 65;
 
       const x = getX(t);
       const y = -1 / x;
@@ -431,7 +438,7 @@
 
       updateLyrics(t);
 
-      if (t < 61) requestAnimationFrame(frame);
+      if (t < 65) requestAnimationFrame(frame);
     }
 
     // ============================================================

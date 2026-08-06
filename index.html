@@ -29,15 +29,16 @@
     }
     #values {
       position: absolute;
-      top: 5vh;
-      left: 7vw;
-      color: rgba(255, 255, 255, 0.92);
-      font-family: 'Dancing Script', cursive;
-      font-size: clamp(22px, 6vw, 34px);
-      font-weight: 400;
-      line-height: 1.7;
-      letter-spacing: 0.02em;
-      text-shadow: 0 0 16px rgba(255,255,255,0.25), 0 0 32px rgba(255,255,255,0.1);
+      bottom: 3.5vh;
+      right: 5vw;
+      text-align: right;
+      color: rgba(255, 255, 255, 0.85);
+      font-family: 'Inter', sans-serif;
+      font-size: clamp(11px, 2.6vw, 15px);
+      font-weight: 200;
+      line-height: 1.5;
+      letter-spacing: 0.03em;
+      text-shadow: 0 0 12px rgba(255,255,255,0.2);
       opacity: 0;
       transition: opacity 2.5s ease;
       z-index: 6;
@@ -147,7 +148,7 @@
     <div id="values">
       <div id="x-display">x = 10.00</div>
       <div id="y-display">y = -0.10</div>
-      <div id="trend-display" style="font-size:0.65em; color:rgba(184,244,255,0.7); margin-top:6px;">x &rarr; 0&nbsp;&nbsp;|&nbsp;&nbsp;y &rarr; -&infin;</div>
+      <div id="trend-display" style="font-size:0.7em; color:rgba(184,244,255,0.7); margin-top:3px;">x &rarr; 0 &nbsp;|&nbsp; y &rarr; -&infin;</div>
     </div>
     <div id="lyrics"></div>
   </div>
@@ -274,12 +275,12 @@
     //  LYRICS DATA (audio + lyrics start at animation t = 5)
     // ============================================================
     const lyricsData = [
-      { start: 5.0,  end: 12.0, lines: ["Tere rukh se apna raasta"] },
-      { start: 12.0, end: 18.5, lines: ["Mod ke chalaa"] },
-      { start: 18.5, end: 30.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
-      { start: 30.5, end: 42.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
-      { start: 42.0, end: 52.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
-      { start: 52.0, end: 65.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
+      { start: 2.0,  end: 9.0,  lines: ["Tere rukh se apna raasta"] },
+      { start: 9.0,  end: 15.5, lines: ["Mod ke chalaa"] },
+      { start: 15.5, end: 27.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
+      { start: 27.5, end: 39.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
+      { start: 39.0, end: 49.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
+      { start: 49.0, end: 62.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
     ];
     let currentLyricIdx = -1;
 
@@ -339,15 +340,12 @@
     }
 
     function drawCurve(v, particleX) {
-      // Only draw curve from y-axis up to slightly ahead of particle
-      const xAtTop = -1 / v.top;
-      const xAtBottom = -1 / v.bottom;
-
-      let xMin = Math.max(1e-12, xAtTop);
-      let xMax = Math.min(xAtBottom, particleX * 1.8);
+      // Only draw curve from near the y-axis up to slightly ahead of particle.
+      // For y=-1/x: y close to 0 (view top) <-> large x. y very negative (view bottom) <-> tiny x near the axis.
+      let xMin = Math.max(1e-6, -1 / v.bottom);
+      let xMax = Math.min(v.right, particleX * 1.8);
 
       if (xMin >= xMax) return;
-      if (xMax > v.right) xMax = v.right;
 
       setWorldTransform(v);
 
@@ -479,21 +477,22 @@
     let audioStarted = false;
     let useAudioTime = false;
     let animTime = 0;
+    const AUDIO_DELAY = 2; // song starts this many seconds after the particle begins descending
 
     audio.addEventListener('play', () => { useAudioTime = true; });
 
     function frame() {
       let t;
       if (useAudioTime) {
-        t = 5 + audio.currentTime;
+        t = AUDIO_DELAY + audio.currentTime;
       } else {
         t = (performance.now() - t0) / 1000;
-        if (t >= 5 && !audioStarted) {
+        if (t >= AUDIO_DELAY && !audioStarted) {
           audio.play().catch(() => {});
           audioStarted = true;
         }
       }
-      if (t > 70) t = 70;
+      if (t > 67) t = 67;
       animTime = t;
 
       const x = getX(t);
@@ -517,7 +516,7 @@
 
       updateLyrics(t);
 
-      if (t < 70) requestAnimationFrame(frame);
+      if (t < 67) requestAnimationFrame(frame);
     }
 
     // ============================================================
@@ -535,7 +534,7 @@
         valuesEl.classList.add('visible');
         t0 = performance.now();
         requestAnimationFrame(frame);
-      }, 2200);
+      }, 5000); // tap -> 5s eq screen -> particle starts -> +2s (AUDIO_DELAY) -> song at 7s
     }
 
     startEl.addEventListener('click', begin);

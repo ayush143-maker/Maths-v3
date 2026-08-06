@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>y = -1/x</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100;200&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #050814;
+      overflow: hidden;
+      touch-action: none;
+    }
+    canvas { display: block; }
+    #ui {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    #values {
+      position: absolute;
+      top: 36px;
+      left: 36px;
+      color: rgba(255, 255, 255, 0.9);
+      font-family: 'Inter', sans-serif;
+      font-size: 16px;
+      font-weight: 100;
+      line-height: 2.2;
+      letter-spacing: 0.03em;
+      text-shadow: 0 0 20px rgba(255,255,255,0.2), 0 0 40px rgba(255,255,255,0.08);
+      opacity: 0;
+      transition: opacity 2.5s ease;
+    }
+    #values.visible { opacity: 1; }
+    #start {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #050814;
+      color: rgba(255,255,255,0.45);
+      font-family: 'Inter', sans-serif;
+      font-size: 12px;
+      font-weight: 200;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: opacity 1.5s ease;
+      pointer-events: auto;
+      z-index: 10;
+    }
+    #start.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #start .hint {
+      margin-top: 16px;
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.2);
+    }
+  </style>
+</head>
+<body>
+  <div id="start">
+    <div>Click to begin</div>
+    <div class="hint">Headphones recommended</div>
+  </div>
+  <canvas id="canvas"></canvas>
+  <div id="ui">
+    <div id="values">
+      <div id="x-display">x = 10</div>
+      <div id="y-display">y = -0.1</div>
+    </div>
+  </div>
+  <audio id="music" src="music.mp3" preload="auto"></audio>
+
+  <script>
+    // ============================================================
+    //  CONFIGURATION
+    // ============================================================
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { alpha: false });
+    const startEl = document.getElementById('start');
+    const valuesEl = document.getElementById('values');
+    const xDisplay = document.getElementById('x-display');
+    const yDisplay = document.getElementById('y-display');
+    const audio = document.getElementById('music');
+
+    // ============================================================
+    //  RESIZE & DPR
+    // ============================================================
+    let W, H, aspect;
+    function resize() {
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      W = window.innerWidth * dpr;
+      H = window.innerHeight * dpr;
+      canvas.width = W;
+      canvas.height = H;
+      canvas.style.width = window.innerWidth + 'px';
+      canvas.style.height = window.innerHeight + 'px';
+      aspect = W / H;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // ============================================================
+    //  STARFIELD
+    // ============================================================
+    const STAR_COUNT = 120;
+    const stars = [];
+    for (let i = 0; i < STAR_COUNT; i++) {
+      stars.push({
+        x: Math.random(),
+        y: Math.random(),
+        r: 0.3 + Math.random() * 1.0,
+        a: 0.06 + Math.random() * 0.14,
+        phase: Math.random() * Math.PI * 2,
+        speed: 0.15 + Math.random() * 0.4
+      });
+    }
+
+    // ============================================================
+    //  MATH UTILITIES
+    // ============================================================
+    const SUP = {'0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹','-':'⁻'};
+    const toSup = n => String(n).split('').map(c => SUP[c] || c).join('');
+
+    function fmt(val, isY) {
+      const av = Math.abs(val);
+      const sci = isY ? av >= 100 : av < 1;
+      let s;
+      if (sci) {
+        const e = Math.floor(Math.log10(av));
+        const m = av / Math.pow(10, e);
+        const ms = Math.abs(m - 1) < 0.001 ? '1' : m.toFixed(1).replace(/\.0$/, '');
+        s = ms + '×10' + toSup(e);
+      } else {
+        if (av >= 10) s = av.toFixed(0);
+        else if (av >= 1) s = av.toFixed(1).replace(/\.0$/, '');
+        else s = av.toFixed(2).replace(/\.0$/, '');
+      }
+      return (isY ? '-' : '') + s;
+    }
+
+    // Particle position: x(t)
+    function getX(t) {
+      if (t <= 5) return 10 - 1.6 * t;   // intro: 10 → 2
+      return 2 * Math.exp(-0.34 * (t - 5)); // main: exponential decay
+    }
+
+    // View width in world units
+    function getViewW(t, x) {
+      if (t <= 5) return 24 - 1.6 * t;   // intro: 24 → 16
+      return 8 * x;                       // main: fixed framing ratio
+    }
+
+    // ============================================================
+    //  RENDERING
+    // ============================================================
+    function drawStars(time) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      for (const s of stars) {
+        const tw = 0.6 + 0.4 * Math.sin(time * s.speed + s.phase);
+        ctx.fillStyle = `rgba(255,255,255,${s.a * tw})`;
+        ctx.beginPath();
+        ctx.arc(s.x * W, s.y * H, s.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawAxes(scale) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const ox = W / 2 - cx * scale;
+      const oy = H / 2 + cy * scale;
+
+      ctx.shadowColor = 'rgba(255,255,255,0.18)';
+      ctx.shadowBlur = 14;
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'rgba(255,255,255,0.32)';
+
+      // Y-axis (x = 0)
+      ctx.beginPath();
+      ctx.moveTo(ox, 0);
+      ctx.lineTo(ox, H);
+      ctx.stroke();
+
+      // X-axis (y = 0)
+      ctx.beginPath();
+      ctx.moveTo(0, oy);
+      ctx.lineTo(W, oy);
+      ctx.stroke();
+
+      ctx.shadowBlur = 0;
+    }
+
+    function drawCurve(scale) {
+      const xL = cx - (W / scale) / 2;
+      const xR = cx + (W / scale) / 2;
+      const yB = cy - (H / scale) / 2;
+      const yT = cy + (H / scale) / 2;
+
+      // Visible y-range of y = -1/x within the view
+      let yMin = yB;
+      let yMax = Math.min(yT, -1e-300);
+
+      if (xR > 0) yMax = Math.min(yMax, -1 / xR);
+      if (xL > 0) yMin = Math.max(yMin, -1 / xL);
+
+      if (yMin >= yMax) return;
+
+      // Set world-space transform: y-up, origin at screen centre
+      ctx.setTransform(scale, 0, 0, -scale, W / 2 - cx * scale, H / 2 + cy * scale);
+
+      // Build path by sampling in y (stable near vertical asymptote)
+      const n = 400;
+      ctx.beginPath();
+      for (let i = 0; i <= n; i++) {
+        const p = i / n;
+        const y = yMin + p * (yMax - yMin);
+        const x = -1 / y;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+
+      // Vertical gradient: top (#AEEBFF) → bottom (#5B5CFF)
+      const grad = ctx.createLinearGradient(0, yMax, 0, yMin);
+      grad.addColorStop(0, '#AEEBFF');
+      grad.addColorStop(1, '#5B5CFF');
+
+      const ps = Math.abs(scale);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+
+      // Outer soft bloom
+      ctx.shadowColor = 'rgba(174, 235, 255, 0.3)';
+      ctx.shadowBlur = 22;
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 3.0 / ps;
+      ctx.stroke();
+
+      // Inner glow
+      ctx.shadowBlur = 10;
+      ctx.lineWidth = 2.0 / ps;
+      ctx.stroke();
+
+      // Core highlight
+      ctx.shadowBlur = 0;
+      ctx.lineWidth = 1.0 / ps;
+      ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+      ctx.stroke();
+    }
+
+    function drawParticle(x, y, scale) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      const sx = W / 2 + (x - cx) * scale;
+      const sy = H / 2 - (y - cy) * scale;
+
+      // Soft cyan halo
+      const g = ctx.createRadialGradient(sx, sy, 0, sx, sy, 20);
+      g.addColorStop(0, 'rgba(174, 235, 255, 0.5)');
+      g.addColorStop(0.35, 'rgba(174, 235, 255, 0.12)');
+      g.addColorStop(1, 'rgba(174, 235, 255, 0)');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(sx, sy, 20, 0, Math.PI * 2);
+      ctx.fill();
+
+      // White core
+      ctx.beginPath();
+      ctx.arc(sx, sy, 4, 0, Math.PI * 2);
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = 'rgba(255,255,255,0.5)';
+      ctx.shadowBlur = 12;
+      ctx.fill();
+      ctx.shadowBlur = 0;
+    }
+
+    // ============================================================
+    //  ANIMATION LOOP
+    // ============================================================
+    let cx = 10, cy = -0.1;   // camera world position
+    let running = false;
+    let t0 = 0;
+    let audioStarted = false;
+    let useAudioTime = false;
+
+    audio.addEventListener('play', () => { useAudioTime = true; });
+
+    function frame() {
+      let t;
+      if (useAudioTime) {
+        t = 5 + audio.currentTime;
+      } else {
+        t = (performance.now() - t0) / 1000;
+        if (t >= 5 && !audioStarted) {
+          audio.play().catch(() => {});
+          audioStarted = true;
+        }
+      }
+      if (t > 61) t = 61;
+
+      // Particle physics
+      const x = getX(t);
+      const y = -1 / x;
+
+      // Camera
+      if (t < 5) {
+        cx += (x - cx) * 0.04;   // gentle lag during intro
+        cy += (y - cy) * 0.04;
+      } else {
+        cx = x;                   // exact centre during main sequence
+        cy = y;
+      }
+
+      const viewW = getViewW(t, x);
+      const scale = W / viewW;
+
+      // Clear
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.fillStyle = '#050814';
+      ctx.fillRect(0, 0, W, H);
+
+      // Layers
+      drawStars(t);
+      drawAxes(scale);
+      drawCurve(scale);
+      drawParticle(x, y, scale);
+
+      // Live values
+      xDisplay.textContent = 'x = ' + fmt(x, false);
+      yDisplay.textContent = 'y = ' + fmt(y, true);
+
+      if (t < 61) requestAnimationFrame(frame);
+    }
+
+    // ============================================================
+    //  INPUT HANDLERS
+    // ============================================================
+    function begin() {
+      if (running) return;
+      running = true;
+      startEl.classList.add('hidden');
+      valuesEl.classList.add('visible');
+      t0 = performance.now();
+      requestAnimationFrame(frame);
+    }
+
+    startEl.addEventListener('click', begin);
+    document.addEventListener('keydown', (e) => {
+      if (e.code === 'Space' || e.code === 'Enter') begin();
+    });
+  </script>
+</body>
+</html>

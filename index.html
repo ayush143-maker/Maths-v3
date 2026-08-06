@@ -62,9 +62,7 @@
       pointer-events: none;
       z-index: 6;
       padding: 12px 32px;
-      border-radius: 12px;
-      background: rgba(5, 8, 20, 0.35);
-      backdrop-filter: blur(4px);
+      background: transparent;
     }
     #lyrics.visible { opacity: 1; }
     #start {
@@ -148,7 +146,10 @@
     <div id="values">
       <div id="x-display">x = 10.00</div>
       <div id="y-display">y = -0.10</div>
-      <div id="trend-display" style="font-size:0.7em; color:rgba(184,244,255,0.7); margin-top:3px;">x &rarr; 0 &nbsp;|&nbsp; y &rarr; -&infin;</div>
+      <div id="trend-display" style="font-size:0.7em; font-weight:400; color:rgba(184,244,255,0.7); margin-top:3px;">
+        <div style="white-space:nowrap;">x &rarr; 0</div>
+        <div style="white-space:nowrap;">y &rarr; -&infin;</div>
+      </div>
     </div>
     <div id="lyrics"></div>
   </div>
@@ -228,22 +229,19 @@
       return (isY ? '-' : '') + s;
     }
 
-    // Particle position: x(t) — never reaches 0, slowly decays
+    // Particle position: x(t) — comes in fast, keeps approaching 0, never touches
     function getX(t) {
-      // x starts at 10, decays exponentially but never hits 0
-      // At t=0: 10, t=20: ~3.4, t=50: ~0.39, t=100: ~0.015
-      return 10 * Math.exp(-t / 18);
+      // Power-law decay: steep drop at the start, still visibly creeping toward 0 at t=56
+      // t=0: 10, t=1: ~5.6, t=5: ~2.2, t=20: ~0.66, t=56: ~0.32
+      return 10 / Math.pow(1 + t, 0.85);
     }
 
-    // View parameters — keeps y-axis visible, particle approaches it but never touches
+    // View parameters — camera stays centred on the particle the whole time
     function getView(t, x, y) {
-      // View width shrinks slowly as x shrinks, with a minimum so we don't explode
       const Wv = Math.max(2.5, 18 * Math.exp(-t / 28));
-      // y-axis sits at 12% from left edge
-      const left = -Wv * 0.12;
       const Hv = Wv / aspect;
-      // Particle sits at 38% from top
-      const top = y + Hv * 0.38;
+      const left = x - Wv / 2;
+      const top = y + Hv / 2;
       const bottom = top - Hv;
       return { left, right: left + Wv, bottom, top, Wv, Hv };
     }
@@ -275,12 +273,12 @@
     //  LYRICS DATA (audio + lyrics start at animation t = 5)
     // ============================================================
     const lyricsData = [
-      { start: 2.0,  end: 9.0,  lines: ["Tere rukh se apna raasta"] },
-      { start: 9.0,  end: 15.5, lines: ["Mod ke chalaa"] },
-      { start: 15.5, end: 27.5, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
-      { start: 27.5, end: 39.0, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
-      { start: 39.0, end: 49.0, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
-      { start: 49.0, end: 62.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
+      { start: 0.0,  end: 6.5,  lines: ["Tere rukh se apna raasta"] },
+      { start: 6.5,  end: 12.6, lines: ["Mod ke chalaa"] },
+      { start: 12.6, end: 23.8, lines: ["Chandan hoon main", "Apni khushboo chhod ke chala"] },
+      { start: 23.8, end: 34.5, lines: ["Mann ki maaya rakh ke", "Tere takiye tale"] },
+      { start: 34.5, end: 43.9, lines: ["Bairagi, bairagi ka sooti chaula", "Odh ke chalaa"] },
+      { start: 43.9, end: 56.0, lines: ["Channa mereya mereya", "Channa mereya mereya"] }
     ];
     let currentLyricIdx = -1;
 
@@ -340,10 +338,9 @@
     }
 
     function drawCurve(v, particleX) {
-      // Only draw curve from near the y-axis up to slightly ahead of particle.
-      // For y=-1/x: y close to 0 (view top) <-> large x. y very negative (view bottom) <-> tiny x near the axis.
+      // Only draw the curve up to where the particle currently is — nothing pre-traced ahead.
       let xMin = Math.max(1e-6, -1 / v.bottom);
-      let xMax = Math.min(v.right, particleX * 1.8);
+      let xMax = Math.min(v.right, particleX);
 
       if (xMin >= xMax) return;
 
@@ -474,25 +471,20 @@
     // ============================================================
     let running = false;
     let t0 = 0;
-    let audioStarted = false;
     let useAudioTime = false;
     let animTime = 0;
-    const AUDIO_DELAY = 2; // song starts this many seconds after the particle begins descending
+    const SONG_LENGTH = 56; // seconds
 
     audio.addEventListener('play', () => { useAudioTime = true; });
 
     function frame() {
       let t;
       if (useAudioTime) {
-        t = AUDIO_DELAY + audio.currentTime;
+        t = audio.currentTime;
       } else {
         t = (performance.now() - t0) / 1000;
-        if (t >= AUDIO_DELAY && !audioStarted) {
-          audio.play().catch(() => {});
-          audioStarted = true;
-        }
       }
-      if (t > 67) t = 67;
+      if (t > SONG_LENGTH) t = SONG_LENGTH;
       animTime = t;
 
       const x = getX(t);
@@ -516,7 +508,7 @@
 
       updateLyrics(t);
 
-      if (t < 67) requestAnimationFrame(frame);
+      if (t < SONG_LENGTH) requestAnimationFrame(frame);
     }
 
     // ============================================================
@@ -527,14 +519,15 @@
       running = true;
       startEl.classList.add('hidden');
 
-      // Show equation screen for 2 seconds
+      // Show equation screen for 5 seconds, then particle + song start together
       eqScreen.classList.add('visible');
       setTimeout(() => {
         eqScreen.classList.remove('visible');
         valuesEl.classList.add('visible');
         t0 = performance.now();
+        audio.play().catch(() => {});
         requestAnimationFrame(frame);
-      }, 5000); // tap -> 5s eq screen -> particle starts -> +2s (AUDIO_DELAY) -> song at 7s
+      }, 5000); // tap -> 5s eq screen -> particle descent + song start together
     }
 
     startEl.addEventListener('click', begin);

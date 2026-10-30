@@ -1,19 +1,15 @@
 # Maths-v3
 
-An interactive mathematical-art page built around y = -1/x. It presents an animated journey toward infinity, updates x/y values, and includes an audio asset.
+Maths-v3 is an animated mathematical-art experiment built around the curve **y = -1/x**. The page turns the equation into a visual journey, with a changing display of the current x and y values and an included music asset.
 
-## Run locally
+## Preview locally
 
-Open index.html in a modern browser. If browser restrictions block local assets or APIs, serve the folder over HTTP.
+The project is a standalone HTML page. Open index.html in a modern browser, or run a local server:
 
-## Structure and assets
+    python -m http.server 8000
 
-`index.html` is the primary entry point. Keep linked images, audio, scripts, and styles in their existing relative locations; renaming files may break references.
+Then visit http://localhost:8000.
 
-## Preview and deployment
+## Explore and customise
 
-Open the page in a modern browser. If local-file behavior is restricted, start a simple HTTP server from this folder and open the local address in your browser. For static hosting, publish the correct root folder and check asset paths after deployment.
-
-## Making changes
-
-Test the page after edits and check both phone-sized and desktop-sized viewports. Confirm that buttons and other visible interactions work in the deployed version as well as locally.
+The main visualisation and its on-screen controls are contained in index.html. Keep the displayed values aligned with the plotted curve when changing the animation or interaction. The repository includes music.mp3; preserve its relative path if you replace the audio file.

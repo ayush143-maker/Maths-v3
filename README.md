@@ -1,6 +1,6 @@
 # Maths-v3
 
-An animated mathematical-art experiment built around the curve **y = -1/x**. The page displays changing x and y values alongside the visualisation, and the repository includes a music asset.
+An animated mathematical-art experiment built around the curve **y = -1/x**. The page displays changing x and y values alongside the visualisation, and the repository includes a music asset. Use the on-screen controls to interact with the visualisation; the specific controls are defined in `index.html`.
 
 ## Preview locally
 

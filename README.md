@@ -18,6 +18,12 @@ The page, visualisation, displayed values, and controls are defined in `index.ht
 
 Preserve the relative path to `music.mp3` if replacing the audio file. If you rename or move it, update its reference in `index.html`; keep the file in the project folder when hosting the static page.
 
+## Configuration and data handling
+
+The listed root files contain no `.env.example` or separate configuration file. This static page has no server-side environment in which to keep secrets: anything placed in its HTML or delivered browser files can be viewed by visitors. Do not put passwords, tokens, or other secrets in the page or tracked files.
+
+Review the page and `music.mp3` before publishing. Avoid including private information in page content, and distribute audio only if you have permission to do so.
+
 ## Browser and platform reliability review checklist
 
 This is a checklist for a future review, not a record of completed testing or verified results.

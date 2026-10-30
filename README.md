@@ -27,3 +27,13 @@ This is a checklist of actions to perform, not a record of verified results.
 - Check whether `index.html` references `music.mp3` and, if so, confirm the file is available at that relative path.
 - Inspect the page at a narrow mobile-sized viewport and a wide desktop-sized viewport. Check that the visualisation, values, and controls remain visible and usable.
 - After changing the animation or interaction, compare the displayed values with the plotted curve. If you change the Google Fonts links, review the typography too.
+
+## Accessibility review checklist
+
+These are future review checks, not verified accessibility results.
+
+- Use Tab and Shift+Tab to check whether every on-screen control defined in `index.html` can be reached and operated without a pointer. Check that focus order is sensible and that no action depends only on pointer input.
+- Check that keyboard focus is clearly visible on each focused control and is not lost against the visualization.
+- Review the controls for meaningful accessible names. Check whether the changing x and y values are available as text and whether the curve has a suitable text explanation for information conveyed by its plotted appearance.
+- Check text and control-label contrast against their backgrounds, including around the visualization, and review legibility with the linked fonts unavailable.
+- Because the experiment is animated, check its behavior with the operating system's reduced-motion preference enabled. Review whether the visualization and controls remain usable when motion is reduced.

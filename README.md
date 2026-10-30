@@ -1,6 +1,6 @@
 # Maths-v3
 
-Maths-v3 is an animated mathematical-art experiment built around the curve **y = -1/x**. The root `index.html` contains the visualization, changing x and y values, and on-screen controls. The project also includes `music.mp3` in the root folder.
+Maths-v3 is a timed mathematical-art experience centered on the curve **y = -1/x**. The root `index.html` draws a full-screen animated canvas with axes, a starfield, a moving particle, and its trail. It also displays the particle’s changing x and y values and timed Hindi lyrics.
 
 ## Preview locally
 
@@ -10,17 +10,16 @@ Open `index.html` in a browser, or serve the project folder over HTTP:
 python -m http.server 8000
 ```
 
-Then visit <http://localhost:8000>.
+Then visit <http://localhost:8000>. The local audio file is `music.mp3`. Dancing Script and Inter are loaded from Google Fonts, so those fonts depend on network access.
 
-## Explore and customize
+## Start and watch
 
-The visualization, displayed values, and controls are defined in `index.html`. When changing the animation or interaction, keep the displayed x and y values aligned with the plotted curve. Review the controls and rendered result in a browser after making changes.
+Click or touch the opening screen to begin; Space and Enter also start the experience. An equation title screen runs for five seconds, then the particle animation and `music.mp3` start. The particle follows a programmed x(t) path toward zero, with the corresponding y value shown on screen. Its final rapid descent is scheduled for the last two seconds of the 56-second sequence. A closing message appears when the sequence ends.
 
-The project includes `music.mp3`; inspect `index.html` to determine whether and where the page references it before moving or replacing the file. If it is used, keep its location aligned with the page reference or update that reference. Check filename capitalization when investigating a missing local resource.
+When audio plays, animation timing follows the audio element’s playback time. If audio playback does not begin, the animation uses a performance-clock fallback. Browser audio policies may require a user gesture, and the page does not provide pause, seek, or restart controls; reload the page to run it again.
 
-The page also requests Google Fonts from `fonts.googleapis.com` and `fonts.gstatic.com`, so typography depends on network access to those external resources. No build scripts or deployment configuration are documented.
+## Editing and rendering notes
 
-## Project files
+The visualization, displayed values, lyrics, timing, and controls are in `index.html`. Keep the displayed values and curve logic consistent if changing the particle path. Keep `music.mp3` at the repository root unless you update its reference in the page. The canvas resizes with the browser window and caps its rendering device-pixel ratio at 2.
 
-- `index.html` — page entry point, visualization, displayed values, and controls.
-- `music.mp3` — local audio file included in the project.
+The experience is self-contained apart from the external Google Fonts requests: its source makes no external API calls and does not use local storage. No build scripts or deployment configuration are documented. Check the animation and audio together in a browser after changing timing or media; the page has no in-experience controls for recovering from a missed or interrupted sequence.

@@ -16,30 +16,30 @@ Then visit <http://localhost:8000>.
 
 The page, visualisation, displayed values, and controls are defined in `index.html`. When changing the animation or interaction, keep the displayed values aligned with the plotted curve. The page links to Google Fonts; changing or removing those links may affect typography.
 
-Preserve the relative path to `music.mp3` if replacing the audio file. If you rename or move it, update its reference in `index.html`; keep the file in the project folder when hosting the static page.
+Before moving or replacing `music.mp3`, check whether and where `index.html` references it. Keep any existing relative path and filename aligned with the file, or update the reference when intentionally changing its location. The font links are external; local files must be available at their referenced paths.
 
 ## Troubleshooting
 
-Use these as diagnostic checks; they do not indicate known problems.
+These are diagnostic checks, not reports of known problems.
 
 1. Confirm you opened the root `index.html`, the experiment’s entry point.
-2. If a local resource is missing, inspect its reference in `index.html`, confirm the file exists in the project, and preserve its relative path and filename capitalization. Check whether the page actually references `music.mp3` before treating it as a required loaded resource.
-3. Inspect the browser console for errors and the network panel for failed page, media, or font requests. Compare displayed x and y values with the plotted curve when reviewing animation changes.
-4. Local project files and Google Fonts requests have different dependencies: the fonts require an external network connection, while a local file must be present at its referenced path.
+2. If a local resource is missing, inspect its reference in `index.html`, confirm the file exists, and check the relative path and filename capitalization. Do not assume `music.mp3` is loaded without checking the page reference.
+3. Inspect the browser console for errors and the network panel for failed page, media, or font requests. When reviewing animation changes, compare the displayed x and y values with the plotted curve.
+4. Google Fonts requests require network access; local resources must be present at their referenced paths.
 
-## Configuration and data handling
+## Configuration and publishing
 
 The listed root files contain no `.env.example` or separate configuration file. This static page has no server-side environment in which to keep secrets: anything placed in its HTML or delivered browser files can be viewed by visitors. Do not put passwords, tokens, or other secrets in the page or tracked files.
 
-Review the page and `music.mp3` before publishing. Avoid including private information in page content, and distribute audio only if you have permission to do so.
+Review page content and `music.mp3` before publishing. Avoid including private information, and distribute audio only if you have permission to do so.
 
-## Review checklist
+## Contributor handoff
 
-These are review steps, not verified test results.
+Keep changes scoped to the intended page, animation, controls, or audio. Preserve existing filenames and relative references unless a change requires updating them; when changing a path, update the corresponding reference in `index.html`. In your handoff, briefly describe what changed and which files or references were affected. Manually review the result before publishing, including the relevant checks below. These are review steps, not verified results.
 
 - Review the animation, displayed x and y values, and controls at narrow and wide viewport sizes.
 - Try the on-screen controls defined in `index.html` and observe their effect on the visualisation and values.
-- After changing animation, controls, or layout, repeat the console, network, and viewport checks above.
+- After changing animation, controls, layout, or resource references, inspect the browser console and network panel and confirm affected local resources load.
 
 ## Accessibility review checklist
 

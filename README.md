@@ -40,3 +40,9 @@ These are future review checks, not verified accessibility results.
 - [ ] Review controls for meaningful accessible names. Check that changing x and y values are available as text and whether the curve needs a text explanation.
 - [ ] Check text and control-label contrast against their backgrounds, including around the visualisation.
 - [ ] Check behavior with the operating system’s reduced-motion preference enabled and whether the visualisation remains usable.
+
+## Final release review
+
+- Open `index.html` from the published location and confirm the page loads as expected.
+- Test with network access available and keep a sensible fallback for externally loaded resources.
+- Review the published result once on a narrow screen and once on a wider screen; treat this as a release check, not an automated test report.

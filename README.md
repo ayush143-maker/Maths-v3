@@ -8,7 +8,7 @@ Open `index.html` in a modern browser. Alternatively, run a local server from th
 
     python -m http.server 8000
 
-Then visit http://localhost:8000.
+Then visit http://localhost:8000. Reload the page after editing to review the animation and controls.
 
 ## Explore and customise
 

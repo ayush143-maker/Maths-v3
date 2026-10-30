@@ -13,3 +13,7 @@ Then visit http://localhost:8000. Reload the page after editing to review the an
 ## Explore and customise
 
 Keep displayed values aligned with the plotted curve when changing the animation or interaction. Preserve the relative path to `music.mp3` if replacing the audio file.
+
+## Hosting
+
+This is a static page. A static host can serve the project files; keep `music.mp3` in the project root so the page can find it.
